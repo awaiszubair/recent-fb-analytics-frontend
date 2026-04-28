@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0A0A0A;
+  --color-foreground: #9CA3AF;
+  
+  --color-brand: #FF6B00;
+  
+  --color-card-dark: #2A2A2A;
+  --color-nav: #131313;
+  --color-dropdown: #1A1A1A;
+  --color-search: #1C1B1B;
+
+  --color-success: #10B981;
+  
+  --font-sans: "Inter", sans-serif;
+}
+
+body {
+  background-color: #0A0A0A;
+  color: #9CA3AF;
+}
