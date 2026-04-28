@@ -32,6 +32,9 @@ export default function ConnectedPages() {
   const dispatch = useDispatch();
   const [sortOpen, setSortOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [selectedSort, setSelectedSort] = useState("Newest");
+  const [selectedStatus, setSelectedStatus] = useState("All Pages");
+  const [connectTrigger, setConnectTrigger] = useState(null);
 
   const { userAccessToken, isConnected, accountData, loading } = useSelector((state) => state.meta);
 
@@ -48,10 +51,24 @@ export default function ConnectedPages() {
     name: p.name,
     category: p.category || "Media / News",
     avatarPath: p.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=FF6B00&color=fff`,
+    rawFollowers: Number(p.followers || 0),
     followers: formatNumber(p.followers),
     isMonetized: (p.metrics?.content_monetization_earnings ?? 0) > 0 || (p.metrics?.monetization_approximate_earnings ?? 0) > 0,
+    latestSyncCompletedAt: p.latest_sync_completed_at || null,
     syncTime: formatSyncTime(p.latest_sync_completed_at),
   })) : [];
+
+  const filteredPages = pages
+    .filter((page) => {
+      if (selectedStatus === "Monetized") return page.isMonetized;
+      if (selectedStatus === "Non Monetized") return !page.isMonetized;
+      return true;
+    })
+    .sort((a, b) => {
+      const aTime = a.latestSyncCompletedAt ? new Date(a.latestSyncCompletedAt).getTime() : 0;
+      const bTime = b.latestSyncCompletedAt ? new Date(b.latestSyncCompletedAt).getTime() : 0;
+      return selectedSort === "Oldest" ? aTime - bTime : bTime - aTime;
+    });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto flex flex-col gap-5 sm:gap-6">
@@ -70,6 +87,7 @@ export default function ConnectedPages() {
 
         {/* Dynamic App Integration / Auth Buttons */}
         <div className="flex items-center gap-3 flex-wrap">
+          <FacebookAuthButton className="hidden" onTriggerReady={setConnectTrigger} />
           {!isConnected ? (
             <FacebookAuthButton />
           ) : (
@@ -78,7 +96,10 @@ export default function ConnectedPages() {
                 <CheckCircle size={16} />
                 Facebook Connected
               </div>
-              <button className="flex items-center gap-2 bg-[#FF6B00] hover:bg-[#FF8533] text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+              <button
+                onClick={() => connectTrigger?.()}
+                disabled={!connectTrigger}
+                className={`flex items-center gap-2 bg-[#FF6B00] hover:bg-[#FF8533] text-white px-5 py-2.5 rounded-lg font-medium transition-colors ${!connectTrigger ? "opacity-70 cursor-not-allowed" : ""}`}
                 style={{
                   boxShadow: "0px 4px 6px -4px rgba(124, 45, 18, 0.2), 0px 10px 15px -3px rgba(124, 45, 18, 0.2)"
                 }}>
@@ -111,14 +132,24 @@ export default function ConnectedPages() {
               <div onClick={() => setSortOpen(!sortOpen)} className="bg-[#1A1A1A] rounded-lg px-4 py-2.5 flex items-center justify-between min-w-[180px] cursor-pointer hover:bg-[#202020] transition-colors border border-transparent hover:border-[#2A2A2A]">
                 <span className="text-[14px]">
                   <span className="text-[#9CA3AF]">Sort by: </span>
-                  <span className="text-white font-medium">Newest</span>
+                  <span className="text-white font-medium">{selectedSort}</span>
                 </span>
                 <ChevronDown size={16} className="text-[#9CA3AF]" />
               </div>
               {sortOpen && (
                 <div className="absolute top-full left-0 mt-2 w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl z-20 py-1 overflow-hidden">
-                  <div className="px-4 py-2 hover:bg-[#202020] cursor-pointer text-white text-[14px]">Newest</div>
-                  <div className="px-4 py-2 hover:bg-[#202020] cursor-pointer text-[#9CA3AF] hover:text-white text-[14px]">Oldest</div>
+                  {["Newest", "Oldest"].map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => {
+                        setSelectedSort(option);
+                        setSortOpen(false);
+                      }}
+                      className={`px-4 py-2 hover:bg-[#202020] cursor-pointer text-[14px] ${selectedSort === option ? "text-white" : "text-[#9CA3AF] hover:text-white"}`}
+                    >
+                      {option}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -126,14 +157,24 @@ export default function ConnectedPages() {
               <div onClick={() => setStatusOpen(!statusOpen)} className="bg-[#1A1A1A] rounded-lg px-4 py-2.5 flex items-center justify-between min-w-[180px] cursor-pointer hover:bg-[#202020] transition-colors border border-transparent hover:border-[#2A2A2A]">
                 <span className="text-[14px]">
                   <span className="text-[#9CA3AF]">Status: </span>
-                  <span className="text-white font-medium">All Pages</span>
+                  <span className="text-white font-medium">{selectedStatus}</span>
                 </span>
                 <ChevronDown size={16} className="text-[#9CA3AF]" />
               </div>
               {statusOpen && (
                 <div className="absolute top-full left-0 mt-2 w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl z-20 py-1 overflow-hidden">
-                  <div className="px-4 py-2 hover:bg-[#202020] cursor-pointer text-white text-[14px]">All Pages</div>
-                  <div className="px-4 py-2 hover:bg-[#202020] cursor-pointer text-[#9CA3AF] hover:text-white text-[14px]">Active</div>
+                  {["All Pages", "Monetized", "Non Monetized"].map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => {
+                        setSelectedStatus(option);
+                        setStatusOpen(false);
+                      }}
+                      className={`px-4 py-2 hover:bg-[#202020] cursor-pointer text-[14px] ${selectedStatus === option ? "text-white" : "text-[#9CA3AF] hover:text-white"}`}
+                    >
+                      {option}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -153,10 +194,10 @@ export default function ConnectedPages() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pages.map((page, index) => (
+                  {filteredPages.map((page, index) => (
                     <tr
                       key={page.id}
-                      className={`group ${index !== pages.length - 1 ? "border-b border-[#2A2A2A]" : ""} hover:bg-[#131313]/50 transition-colors`}
+                      className={`group ${index !== filteredPages.length - 1 ? "border-b border-[#2A2A2A]" : ""} hover:bg-[#131313]/50 transition-colors`}
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-4">
@@ -199,10 +240,10 @@ export default function ConnectedPages() {
                       </td>
                     </tr>
                   ))}
-                  {pages.length === 0 && (
+                  {filteredPages.length === 0 && (
                     <tr>
                       <td colSpan="5" className="py-12 px-6 text-center text-[#9CA3AF]">
-                        No pages found linked to this Facebook Account.
+                        No pages match the selected filters.
                       </td>
                     </tr>
                   )}

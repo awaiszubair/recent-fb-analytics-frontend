@@ -1,10 +1,10 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { setAccessToken } from "@/store/slices/metaSlice";
 import { apiAuthFacebookLogin } from "@/lib/api";
 
-export default function FacebookAuthButton({ text = "Connect Facebook", onSuccess }) {
+export default function FacebookAuthButton({ text = "Connect Facebook", onSuccess, onTriggerReady, className = "" }) {
   const dispatch = useDispatch();
   const [isSdkLoaded, setIsSdkLoaded] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -38,7 +38,7 @@ export default function FacebookAuthButton({ text = "Connect Facebook", onSucces
     })(document, "script", "facebook-jssdk");
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = useCallback(() => {
     if (!window.FB) return;
     setIsLoggingIn(true);
     
@@ -84,13 +84,23 @@ export default function FacebookAuthButton({ text = "Connect Facebook", onSucces
       },
       { scope: 'pages_show_list,pages_read_engagement,pages_read_user_content' }
     );
-  };
+  }, [dispatch, onSuccess]);
+
+  useEffect(() => {
+    if (!onTriggerReady) {
+      return;
+    }
+
+    onTriggerReady(isSdkLoaded && !isLoggingIn ? () => handleLogin : null);
+
+    return () => onTriggerReady(null);
+  }, [handleLogin, isLoggingIn, isSdkLoaded, onTriggerReady]);
 
   return (
     <button
       onClick={handleLogin}
       disabled={!isSdkLoaded || isLoggingIn}
-      className={`flex items-center gap-2 bg-[#1877F2] hover:bg-[#166FE5] text-white px-5 py-2.5 rounded-lg font-medium transition-colors ${(!isSdkLoaded || isLoggingIn) ? 'opacity-70 cursor-not-allowed' : ''}`}
+      className={`flex items-center gap-2 bg-[#1877F2] hover:bg-[#166FE5] text-white px-5 py-2.5 rounded-lg font-medium transition-colors ${(!isSdkLoaded || isLoggingIn) ? 'opacity-70 cursor-not-allowed' : ''} ${className}`}
       style={{
         boxShadow: "0px 4px 6px -4px rgba(24, 119, 242, 0.2), 0px 10px 15px -3px rgba(24, 119, 242, 0.2)",
       }}

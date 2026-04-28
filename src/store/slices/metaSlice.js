@@ -897,11 +897,12 @@ const metaSlice = createSlice({
       })
       .addCase(fetchPostMetadataOnly.fulfilled, (state, action) => {
         state.loading.post = false;
+        const existing = state.postsCache[action.payload.postId] || {};
         state.postsCache[action.payload.postId] = {
-          ...(state.postsCache[action.payload.postId] || {}),
+          ...existing,
           metadata: action.payload.metadata,
-          comments: action.payload.metadata.comments,
-          shares: action.payload.metadata.shares,
+          comments: existing.comments?.comments_count > 0 ? existing.comments : action.payload.metadata.comments,
+          shares: existing.shares?.shares_count > 0 ? existing.shares : action.payload.metadata.shares,
         };
       })
       .addCase(fetchPostMetadataOnly.rejected, (state, action) => {

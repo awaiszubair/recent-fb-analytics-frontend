@@ -76,7 +76,7 @@ export default function PostDetailPage() {
   }, [isConnected, userAccessToken, accountData, dispatch]);
 
   useEffect(() => {
-    if (isConnected && userAccessToken && !postData && !loading.post) {
+    if (isConnected && userAccessToken && !loading.post) {
       dispatch(fetchPostMetadataOnly({ postId, pageId }));
       dispatch(fetchPostInsightsOnly({ postId, pageId }));
     }
