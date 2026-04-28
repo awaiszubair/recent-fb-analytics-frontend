@@ -1,12 +1,16 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Search, Menu } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchUserProfile } from "@/store/slices/metaSlice";
+import { useRouter } from "next/navigation";
+import { fetchAccountPagesOnly, fetchUserProfile } from "@/store/slices/metaSlice";
 
 export default function Navbar({ onMenuClick }) {
+  const router = useRouter();
   const dispatch = useDispatch();
-  const { userProfile, userAccessToken, isConnected } = useSelector(s => s.meta);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+  const { userProfile, userAccessToken, isConnected, accountData } = useSelector(s => s.meta);
 
   useEffect(() => {
     if (isConnected && userAccessToken && !userProfile) {
@@ -14,9 +18,43 @@ export default function Navbar({ onMenuClick }) {
     }
   }, [isConnected, userAccessToken, userProfile, dispatch]);
 
+  useEffect(() => {
+    if (isConnected && userAccessToken && !accountData?.pages?.length) {
+      dispatch(fetchAccountPagesOnly({ accessToken: userAccessToken }));
+    }
+  }, [isConnected, userAccessToken, accountData?.pages?.length, dispatch]);
+
   const initials = userProfile?.name 
     ? userProfile.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
     : "AE";
+
+  const matchingPages = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    return (accountData?.pages || [])
+      .filter((page) =>
+        [page.name, page.category]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query))
+      )
+      .slice(0, 6);
+  }, [accountData?.pages, searchQuery]);
+
+  const handleNavigate = (pageId) => {
+    if (!pageId) return;
+    setSearchQuery("");
+    setIsFocused(false);
+    router.push(`/analytics/${pageId}`);
+  };
+
+  const handleSubmit = (event) => {
+    if (event.key !== "Enter") return;
+    const firstMatch = matchingPages[0];
+    if (firstMatch?.id) {
+      handleNavigate(firstMatch.id);
+    }
+  };
 
   return (
     <header className="h-[64px] lg:h-[76px] bg-[#131313] border-b border-[#2A2A2A] flex items-center justify-between px-4 lg:px-8 shrink-0 gap-3">
@@ -35,8 +73,29 @@ export default function Navbar({ onMenuClick }) {
         <input 
           type="text" 
           placeholder="Search..." 
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+          onKeyDown={handleSubmit}
           className="w-full h-10 lg:h-11 bg-[#1C1B1B] rounded-lg pl-10 pr-4 text-[14px] lg:text-[15px] text-white placeholder-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-[#FF6B00] border border-transparent focus:border-[#FF6B00]/30 transition-all"
         />
+        {isFocused && searchQuery.trim() && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden z-30">
+            {matchingPages.length > 0 ? matchingPages.map((page) => (
+              <button
+                key={page.id}
+                onClick={() => handleNavigate(page.id)}
+                className="w-full text-left px-4 py-3 hover:bg-[#202020] transition-colors"
+              >
+                <span className="block text-white text-[14px] font-medium">{page.name}</span>
+                <span className="block text-[#9CA3AF] text-[12px]">{page.category || "Connected Page"}</span>
+              </button>
+            )) : (
+              <div className="px-4 py-3 text-[#9CA3AF] text-[13px]">No matching pages found.</div>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Right section */}

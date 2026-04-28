@@ -98,8 +98,7 @@ export default function PostDetailPage() {
 
   // ── Derived metrics ──────────────────────────────────────────────────────────
   const insights = postData?.insights || { data: [] };
-  const cmEarnings = getMetricTotal(insights, "content_monetization_earnings")
-    + getMetricTotal(insights, "monetization_approximate_earnings");
+  const cmEarnings = getMetricTotal(insights, "monetization_approximate_earnings");
 
   const reach = getMetricTotal(insights, "post_impressions_unique");
   const impressions = getMetricTotal(insights, "post_media_view");

@@ -16,6 +16,58 @@ const getDefault = (days = 30) => {
   return { startDate: s, endDate: e, since: toDateStr(s), until: toDateStr(e) };
 };
 
+const nextDay = (dateStr) => {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return toDateStr(d);
+};
+
+const isInRange = (endTime, sinceStr, untilStr) => {
+  if (!endTime) return true;
+  const dayStr = endTime.substring(0, 10);
+  return dayStr > sinceStr && dayStr <= nextDay(untilStr);
+};
+
+const toNumber = (value) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+const getContentTypeBreakdownTotals = (insightsData, sinceStr, untilStr) => {
+  const metric = insightsData?.data?.find((m) => m.name === "content_type_breakdown");
+  if (!metric || !Array.isArray(metric.values)) {
+    return { videos: 0, reels: 0, photoText: 0 };
+  }
+
+  const totals = { videos: 0, reels: 0, photoText: 0 };
+
+  metric.values.forEach((entry) => {
+    if (sinceStr && untilStr && !isInRange(entry?.end_time, sinceStr, untilStr)) {
+      return;
+    }
+
+    const breakdown = entry?.value;
+    if (!breakdown || typeof breakdown !== "object") {
+      return;
+    }
+
+    totals.videos += toNumber(breakdown.video?.earnings_amount) / 1_000_000;
+    totals.reels += toNumber(breakdown.reel?.earnings_amount) / 1_000_000;
+    totals.photoText += (
+      toNumber(breakdown.photo?.earnings_amount) +
+      toNumber(breakdown.text?.earnings_amount) +
+      toNumber(breakdown.link?.earnings_amount) +
+      toNumber(breakdown.other?.earnings_amount)
+    ) / 1_000_000;
+  });
+
+  return totals;
+};
+
 const CustomTooltip = ({ active, payload, label, isEarnings = false }) => {
   if (!active || !payload?.length) return null;
   const val = payload.find(p => p.dataKey === "value")?.value;
@@ -128,23 +180,7 @@ export default function PageAnalyticsDetail() {
     };
   });
 
-  const breakdown = posts.reduce((acc, p) => {
-    const type = p.status_type || "";
-    const attType = p.attachments?.data?.[0]?.type || "";
-    const earnings = p.insights?.data?.find(x => x.name === "content_monetization_earnings")?.values?.[0]?.value || 0;
-
-    if (type === "added_video" || attType.includes("video")) {
-      acc.videos.sum += earnings;
-      acc.videos.count += 1;
-    } else if (type === "shared_story" || attType.includes("reel")) {
-      acc.reals.sum += earnings;
-      acc.reals.count += 1;
-    } else {
-      acc.other.sum += earnings;
-      acc.other.count += 1;
-    }
-    return acc;
-  }, { videos: { sum: 0, count: 0 }, reals: { sum: 0, count: 0 }, other: { sum: 0, count: 0 } });
+  const breakdownTotals = getContentTypeBreakdownTotals(insights, dateRange.since, dateRange.until);
 
   if (pageData && mounted) {
     const _debugMetric = insights?.data?.find(m => m.name === 'page_media_view');
@@ -251,41 +287,15 @@ export default function PageAnalyticsDetail() {
         {[
           {
             title: "VIDEOS",
-            value: posts.reduce((sum, p) => {
-              const type = p.status_type || "";
-              const attType = p.attachments?.data?.[0]?.type || "";
-              if (type === "added_video" || attType.includes("video")) {
-                const earnings = p.insights?.data?.find(x => x.name === "content_monetization_earnings")?.values?.[0]?.value || 0;
-                return sum + earnings;
-              }
-              return sum;
-            }, 0)
+            value: breakdownTotals.videos
           },
           {
             title: "REELS",
-            value: posts.reduce((sum, p) => {
-              const type = p.status_type || "";
-              const attType = p.attachments?.data?.[0]?.type || "";
-              if (type === "shared_story" || attType.includes("reel")) {
-                const earnings = p.insights?.data?.find(x => x.name === "content_monetization_earnings")?.values?.[0]?.value || 0;
-                return sum + earnings;
-              }
-              return sum;
-            }, 0)
+            value: breakdownTotals.reels
           },
           {
             title: "PHOTOS/TEXT",
-            value: posts.reduce((sum, p) => {
-              const type = p.status_type || "";
-              const attType = p.attachments?.data?.[0]?.type || "";
-              const isVideo = type === "added_video" || attType.includes("video");
-              const isReel = type === "shared_story" || attType.includes("reel");
-              if (!isVideo && !isReel) {
-                const earnings = p.insights?.data?.find(x => x.name === "content_monetization_earnings")?.values?.[0]?.value || 0;
-                return sum + earnings;
-              }
-              return sum;
-            }, 0)
+            value: breakdownTotals.photoText
           }
         ].map(card => {
           const totalBreakdown = 1; // Logic for progress bar if needed
