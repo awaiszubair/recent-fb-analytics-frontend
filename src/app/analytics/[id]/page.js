@@ -83,6 +83,7 @@ export default function PageAnalyticsDetail() {
   const [activeTab, setActiveTab] = useState("ALL POSTS");
   const [isExporting, setIsExporting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [dateRange, setDateRange] = useState(() => getDefault(30));
   const { id } = useParams();
   const router = useRouter();
@@ -92,7 +93,10 @@ export default function PageAnalyticsDetail() {
   const pageData = pagesCache[id];
   const pageMetadata = accountData?.pages?.find(p => p.id === id);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    setIsHydrated(true);
+  }, []);
 
   // Restore account/page metadata on refresh (Name, Category, Followers, etc.)
   useEffect(() => {
@@ -131,6 +135,13 @@ export default function PageAnalyticsDetail() {
       setIsExporting(false);
     }
   };
+
+  if (!isHydrated) return (
+    <div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#FF6B00]" />
+      <p className="mt-4 text-[#9CA3AF]">Loading page analytics...</p>
+    </div>
+  );
 
   if (!isConnected) return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">

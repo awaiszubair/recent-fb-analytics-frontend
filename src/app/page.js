@@ -48,6 +48,7 @@ export default function AnalyticsOverview() {
   const router = useRouter();
   const dispatch = useDispatch();
 
+  const [isHydrated, setIsHydrated] = useState(false);
   const [dateRange, setDateRange] = useState(() => getDefault(30));
   const [wowEnabled, setWowEnabled] = useState(true);
 
@@ -68,6 +69,10 @@ export default function AnalyticsOverview() {
     )
   );
   const wowRetryRef = useRef(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const doFetch = useCallback(() => {
     dispatch(fetchAccountPagesOnly({ accessToken: userAccessToken, limit: 100 }));
@@ -142,6 +147,14 @@ export default function AnalyticsOverview() {
   }
 
   // ── Not connected ─────────────────────────────────────────────────────────────
+  // Avoid a brief "connect Facebook" flash before Redux/localStorage auth state hydrates.
+  if (!isHydrated) return (
+    <div className="p-8 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[70vh]">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#FF6B00]" />
+      <p className="mt-4 text-[#9CA3AF]">Loading dashboard...</p>
+    </div>
+  );
+
   if (!isConnected) return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[70vh]">
       <div className="w-16 h-16 rounded-full bg-[#1A1A1A] border-2 border-[#3A3A3A] flex items-center justify-center mb-6">

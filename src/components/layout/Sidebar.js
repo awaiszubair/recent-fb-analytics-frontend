@@ -91,10 +91,10 @@ export default function Sidebar({ open = false, onClose }) {
       </div>
 
       <div className="border-t border-[#2A2A2A] p-4 space-y-1.5 mb-2 mx-4">
-        <button className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A]/50 transition-all duration-200">
+        <a href="mailto:ai-ops@publisherinabox.com?subject=FB%20Analytics%20Support%20Query" className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A]/50 transition-all duration-200">
           <HelpCircle size={18} strokeWidth={1.75} />
           <span className="text-[15px]">Support</span>
-        </button>
+        </a>
         <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-all duration-200">
           <LogOut size={18} strokeWidth={1.75} />
           <span className="text-[15px]">Sign Out</span>

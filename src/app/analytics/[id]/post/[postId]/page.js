@@ -52,6 +52,7 @@ const fmtWatchTime = (ms) => {
 
 export default function PostDetailPage() {
   const [mounted, setMounted] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const { id: pageId, postId } = useParams();
   const dispatch = useDispatch();
 
@@ -65,7 +66,10 @@ export default function PostDetailPage() {
   const selectedPage = accountData?.pages?.find(p => p.id === pageId);
   const authorName = selectedPage?.name || "Connected Page";
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    setIsHydrated(true);
+  }, []);
 
   // Restore account/page metadata on refresh (Author Name, etc.)
   useEffect(() => {
@@ -81,6 +85,13 @@ export default function PostDetailPage() {
       dispatch(fetchPostInsightsOnly({ postId, pageId }));
     }
   }, [isConnected, userAccessToken, postId, pageId]); // eslint-disable-line
+
+  if (!isHydrated) return (
+    <div className="p-8 max-w-[1200px] mx-auto flex flex-col items-center justify-center min-h-screen text-[#FFB693] bg-[#15130f]">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-current" />
+      <p className="mt-4 font-bold tracking-widest uppercase">Loading post analytics...</p>
+    </div>
+  );
 
   if (!isConnected) return (
     <div className="p-8 max-w-[1200px] mx-auto flex flex-col items-center justify-center min-h-screen text-white bg-[#15130f]">
