@@ -60,6 +60,14 @@ export default function AnalyticsOverview() {
       (accountData.chartData?.length || 0) > 0
     )
   );
+  const hasLoadedWowComparison = Boolean(
+    accountData &&
+    (
+      Object.keys(accountData.previousTotals || {}).length > 0 ||
+      (accountData.previousPages?.length || 0) > 0
+    )
+  );
+  const wowRetryRef = useRef(false);
 
   const doFetch = useCallback(() => {
     dispatch(fetchAccountPagesOnly({ accessToken: userAccessToken, limit: 100 }));
@@ -78,6 +86,13 @@ export default function AnalyticsOverview() {
     }
   }, [isConnected, userAccessToken, loading.account, hasLoadedDashboardMetrics, doFetch]);
 
+  useEffect(() => {
+    if (wowEnabled && hasLoadedDashboardMetrics && !hasLoadedWowComparison && !loading.account && !wowRetryRef.current) {
+      wowRetryRef.current = true;
+      doFetch();
+    }
+  }, [wowEnabled, hasLoadedDashboardMetrics, hasLoadedWowComparison, loading.account, doFetch]);
+
   // Re-fetch when date or WoW changes
   const prevRef = useRef({ since: dateRange.since, until: dateRange.until, wow: wowEnabled });
   useEffect(() => {
@@ -85,6 +100,7 @@ export default function AnalyticsOverview() {
     const changed = p.since !== dateRange.since || p.until !== dateRange.until || p.wow !== wowEnabled;
     if (changed && isConnected && userAccessToken) {
       prevRef.current = { since: dateRange.since, until: dateRange.until, wow: wowEnabled };
+      wowRetryRef.current = false;
       dispatch(resetAccountData());
       doFetch();
     }

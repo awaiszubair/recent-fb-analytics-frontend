@@ -8,7 +8,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchPageDetails, clearPageCache, fetchPageInsightsOnly, fetchPagePostsOnly, fetchAccountData } from "@/store/slices/metaSlice";
 import { getMetricTotal, getMetricTimeSeries, formatNumber, formatCurrency } from "@/lib/metricUtils";
 import DateRangePicker from "@/components/ui/DateRangePicker";
-
+import { apiExportPageReport } from "@/lib/api";
 const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const getDefault = (days = 30) => {
   const e = new Date(), s = new Date();
@@ -29,6 +29,7 @@ const CustomTooltip = ({ active, payload, label, isEarnings = false }) => {
 
 export default function PageAnalyticsDetail() {
   const [activeTab, setActiveTab] = useState("ALL POSTS");
+  const [isExporting, setIsExporting] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [dateRange, setDateRange] = useState(() => getDefault(30));
   const { id } = useParams();
@@ -60,6 +61,23 @@ export default function PageAnalyticsDetail() {
     setDateRange(newRange);
     dispatch(fetchPageInsightsOnly({ pageId: id, since: newRange.since, until: newRange.until }));
     dispatch(fetchPagePostsOnly({ pageId: id, since: newRange.since, until: newRange.until }));
+  };
+
+  const handleExportReport = async () => {
+    try {
+      setIsExporting(true);
+      const res = await apiExportPageReport({ pageId: id, since: dateRange.since, until: dateRange.until });
+      if (res?.url) {
+        window.open(res.url, "_blank");
+      } else {
+        alert("Failed to generate report.");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("An error occurred while generating the report.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (!isConnected) return (
@@ -205,8 +223,15 @@ export default function PageAnalyticsDetail() {
           </div>
         </div>
 
-        <div className="shrink-0 scale-95 origin-right self-start sm:self-center">
+        <div className="flex items-center gap-3 shrink-0 scale-95 origin-right self-start sm:self-center">
           <DateRangePicker value={dateRange} onChange={handleDateChange} />
+          <button 
+            onClick={handleExportReport}
+            disabled={isExporting || loading.page}
+            className={`bg-[#FF6B00] hover:bg-[#E66000] text-[#572000] font-bold uppercase text-[12px] tracking-widest px-5 py-[11px] rounded-[4px] transition-colors flex items-center justify-center min-w-[140px] ${isExporting || loading.page ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            {isExporting ? "GENERATING..." : "EXPORT REPORT"}
+          </button>
         </div>
       </div>
 

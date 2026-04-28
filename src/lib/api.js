@@ -88,4 +88,9 @@ export const apiGetPostSharesCount = async ({ postId, accessToken }) => {
   return unwrap(response);
 };
 
+export const apiExportPageReport = async ({ pageId, since, until }) => {
+  const response = await apiClient.get(`/page-insights/${pageId}/export-report/${since}/${until}`);
+  return unwrap(response);
+};
+
 export { API_BASE_URL };
