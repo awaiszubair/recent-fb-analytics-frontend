@@ -41,7 +41,7 @@ export default function FacebookAuthButton({ text = "Connect Facebook", onSucces
   const handleLogin = useCallback(() => {
     if (!window.FB) return;
     setIsLoggingIn(true);
-    
+
     // We are requesting permissions to read page insights and publish if needed
     window.FB.login(
       (response) => {
@@ -59,7 +59,7 @@ export default function FacebookAuthButton({ text = "Connect Facebook", onSucces
               try {
                 const existing = JSON.parse(localStorage.getItem('fb_token_data'));
                 if (existing && existing.pageTokens) existingPageTokens = existing.pageTokens;
-              } catch(e) {}
+              } catch (e) { }
               localStorage.setItem('fb_token_data', JSON.stringify({ token: longLivedToken, expiry, pageTokens: existingPageTokens, partnerId }));
               dispatch(setAccessToken({
                 accessToken: longLivedToken,
@@ -82,7 +82,7 @@ export default function FacebookAuthButton({ text = "Connect Facebook", onSucces
           // e.g. dispatch(setAccessToken('dummy_access_token_demo_mode'));
         }
       },
-      { scope: 'pages_show_list,pages_read_engagement,pages_read_user_content' }
+      { scope: 'pages_show_list,pages_read_engagement,pages_read_user_content,read_insights,public_profile,business_management' }
     );
   }, [dispatch, onSuccess]);
 
