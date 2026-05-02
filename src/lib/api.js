@@ -52,13 +52,23 @@ export const apiGetMultiplePageInsights = async ({ pageIds, since, until }) => {
   return unwrap(response) || [];
 };
 
-export const apiGetPagePosts = async (pageId) => {
-  const response = await apiClient.get(`/posts/page/${pageId}`);
+export const apiGetPagePosts = async (pageId, options = {}) => {
+  const response = await apiClient.get(`/posts/page/${pageId}`, {
+    params: {
+      since: options.since,
+      until: options.until,
+    },
+  });
   return unwrap(response) || [];
 };
 
 export const apiGetPost = async (postId) => {
   const response = await apiClient.get(`/posts/${postId}`);
+  return unwrap(response);
+};
+
+export const apiGetPostComments = async (postId, pageId) => {
+  const response = await apiClient.get(`/posts/${postId}/comments?pageId=${pageId}`);
   return unwrap(response);
 };
 
@@ -75,16 +85,12 @@ export const apiGetMultiplePostInsights = async ({ postIds, since, until }) => {
 };
 
 export const apiGetPostCommentsCount = async ({ postId, accessToken }) => {
-  const response = await apiClient.post(`/insights/posts/${postId}/comments-count`, {
-    access_token: accessToken,
-  });
+  const response = await apiClient.get(`/posts/${postId}/comments-count`);
   return unwrap(response);
 };
 
 export const apiGetPostSharesCount = async ({ postId, accessToken }) => {
-  const response = await apiClient.post(`/insights/posts/${postId}/shares-count`, {
-    access_token: accessToken,
-  });
+  const response = await apiClient.get(`/posts/${postId}/shares-count`);
   return unwrap(response);
 };
 

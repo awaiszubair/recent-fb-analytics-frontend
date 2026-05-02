@@ -270,7 +270,7 @@ export default function PageAnalyticsDetail() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 scale-95 origin-right self-start sm:self-center">
+        <div className="flex items-center gap-3 shrink-0 scale-95 origin-right self-start sm:self-center relative z-50">
           <DateRangePicker value={dateRange} onChange={handleDateChange} />
           <button 
             onClick={handleExportReport}

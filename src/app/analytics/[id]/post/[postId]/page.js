@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { Play } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchPostMetadataOnly, fetchPostInsightsOnly, fetchAccountData } from '@/store/slices/metaSlice';
+import { apiGetPostComments } from '@/lib/api';
 import { getMetricTotal, formatNumber, formatCurrency } from '@/lib/metricUtils';
 
 // Extract reaction totals from post_reactions_by_type_total metric
@@ -62,14 +63,36 @@ export default function PostDetailPage() {
   const pagePosts = Array.isArray(pageCache?.posts) ? pageCache.posts : (pageCache?.posts?.data || []);
   const postContent = pagePosts.find(p => p.id === postId);
 
+  // Comments modal state
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [commentsData, setCommentsData] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentsError, setCommentsError] = useState(null);
+
   // Author info
   const selectedPage = accountData?.pages?.find(p => p.id === pageId);
   const authorName = selectedPage?.name || "Connected Page";
+  const pageAccessToken = selectedPage?.access_token || userAccessToken;
 
   useEffect(() => {
     setMounted(true);
     setIsHydrated(true);
   }, []);
+
+  const fetchComments = async () => {
+    setShowCommentsModal(true);
+    setLoadingComments(true);
+    setCommentsError(null);
+    
+    try {
+      const data = await apiGetPostComments(postId, pageId);
+      setCommentsData(data || []);
+    } catch (err) {
+      setCommentsError(err.message || "An error occurred fetching comments");
+    } finally {
+      setLoadingComments(false);
+    }
+  };
 
   // Restore account/page metadata on refresh (Author Name, etc.)
   useEffect(() => {
@@ -178,7 +201,7 @@ export default function PostDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=FFB693&color=fff&size=80`}
+                src={selectedPage?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=FFB693&color=fff&size=80`}
                 alt="Avatar"
                 className="w-10 h-10 rounded-[2px]"
               />
@@ -299,7 +322,10 @@ export default function PostDetailPage() {
             </div>
 
             {/* Comments */}
-            <div className="bg-[#2A2A2A] border border-[#2A2A2A] rounded-xl p-5 flex flex-col justify-center gap-3">
+            <div 
+              className="bg-[#2A2A2A] border border-[#2A2A2A] hover:border-[#FFB693]/50 transition-colors cursor-pointer rounded-xl p-5 flex flex-col justify-center gap-3"
+              onClick={fetchComments}
+            >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 20V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H4L0 20ZM3.15 14H18V2H2V15.125L3.15 14ZM2 14V2V14Z" fill="#FFB693" fillOpacity="0.7" />
               </svg>
@@ -549,6 +575,57 @@ export default function PostDetailPage() {
       <div className="text-center pt-8 pb-4">
         <span className="text-[10px] font-bold tracking-widest text-[#9CA3AF] uppercase">NewsBomb Analytics Engine v4.2.1 • Meta Verified Connector</span>
       </div>
+
+      {/* Comments Modal */}
+      {showCommentsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#15130f] border border-[#2A2A2A] rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-[#2A2A2A] flex justify-between items-center bg-[#1E1C1A]">
+              <h3 className="text-white font-bold tracking-widest uppercase text-[14px]">Post Comments</h3>
+              <button onClick={() => setShowCommentsModal(false)} className="text-[#9CA3AF] hover:text-white transition-colors">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto flex-1">
+              {loadingComments ? (
+                <div className="flex flex-col items-center justify-center py-10 text-[#FFB693]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-current mb-4" />
+                  <span className="text-[11px] font-bold tracking-widest uppercase">Loading Comments...</span>
+                </div>
+              ) : commentsError ? (
+                <div className="text-center text-red-500 py-10 text-[13px]">{commentsError}</div>
+              ) : commentsData.length === 0 ? (
+                <div className="text-center text-[#9CA3AF] py-10 text-[13px] font-bold tracking-widest uppercase opacity-50">No Comments Found</div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {commentsData.map((comment) => (
+                    <div key={comment.id} className="bg-[#2A2A2A] rounded-lg p-4 flex gap-3">
+                      <div className="shrink-0 mt-1">
+                        <div className="w-8 h-8 rounded-full bg-[#FFB693]/20 flex items-center justify-center text-[#FFB693] font-bold text-[12px]">
+                          {comment.from?.name?.charAt(0) || "U"}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-white font-medium text-[13px]">{comment.from?.name || "Unknown User"}</span>
+                          <span className="text-[#9CA3AF] text-[10px]">
+                            {new Date(comment.created_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        {comment.message ? (
+                          <p className="text-[#D1D5DB] text-[13px] whitespace-pre-wrap">{comment.message}</p>
+                        ) : (
+                          <p className="text-[#9CA3AF] text-[13px] italic">Attachment only</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

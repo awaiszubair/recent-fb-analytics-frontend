@@ -628,7 +628,10 @@ export const fetchPagePostsOnly = createAsyncThunk(
       }
 
       const window = resolveWindow({ since, until }, 30);
-      const postsResponse = await apiGetPagePosts(pageId);
+      const postsResponse = await apiGetPagePosts(pageId, {
+        since: window.since,
+        until: window.until,
+      });
       const filteredPosts = postsResponse
         .map((post) => normalizePostRecord(post))
         .filter((post) => isPostInsideWindow(post, window.since, window.until))
